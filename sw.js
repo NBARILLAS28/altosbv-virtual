@@ -1,5 +1,5 @@
 // Service worker: deja la app instalable y rápida. Las llamadas a la API nunca se guardan.
-const V = 'altosbv-v1';
+const V = 'altosbv-v2';
 const SHELL = ['./', 'index.html', 'admin.html', 'config.js', 'manifest.webmanifest', 'vendor/three.min.js', 'vendor/OrbitControls.js',
   'data/tour.json', 'icons/logo-cei.png', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
