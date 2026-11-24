@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Administrador · Altos de Buena Vista</title>
+<meta name="theme-color" content="#000000"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--bg:#0d0c0a;--panel:#1a1814;--ink:#f1ede3;--mute:#a29c8e;--line:#35312a;--gold:#d6b25a;--ok:#4cc083;--hold:#e5a53a;--sold:#e0675c;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;padding:16px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
+.wrap{max-width:900px;margin:0 auto}h1{font-size:22px;margin:0}header{display:flex;align-items:center;gap:12px;margin-bottom:16px}header img{width:44px;height:44px;border-radius:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input,select{background:#0d0c0a;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:9px;font:inherit;min-width:0}
+button{background:var(--gold);color:#121110;border:0;border-radius:8px;padding:9px 14px;font:600 13px inherit;cursor:pointer}
+button.o{background:none;color:var(--ink);border:1px solid var(--line)}button.d{background:var(--sold);color:#fff}
+.tabs{display:flex;gap:8px;margin-bottom:12px}.tabs button{background:none;color:var(--ink);border:1px solid var(--line)}.tabs button.on{background:var(--gold);color:#121110}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.sp{flex:1}.mute{color:var(--mute);font-size:12px}
+.badge{display:inline-block;min-width:20px;padding:0 7px;border-radius:99px;background:var(--sold);color:#fff;font-size:12px;text-align:center}
+table{width:100%;border-collapse:collapse}td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left}
+[hidden]{display:none!important}
+</style></head><body><div class="wrap">
+<header><img src="icons/icon-192.png" alt="CEI"><div><h1>Administrador del tour</h1><div class="mute">Altos de Buena Vista · CEI Corporation</div></div></header>
+<div id="login" class="card"><p>Ingresa la contraseña de administrador.</p><div class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="Contraseña"><button id="go">Entrar</button></div><div class="mute" id="lmsg"></div></div>
+<div id="app" hidden>
+<div class="tabs"><button id="t1" class="on">Solicitudes <span id="nb" class="badge" hidden>0</span></button><button id="t2">Accesos activos</button><button id="t3">Lotes</button><button class="o" id="notif">Activar avisos</button><button class="o" id="out">Salir</button></div>
+<div id="p1"></div><div id="p2" hidden></div><div id="p3" hidden></div></div>
+</div>
+<script src="config.js"></script>
+<script>
+const API=(window.CEI_CONFIG.apiUrl||'').replace(/\/$/,''),$=i=>document.getElementById(i);let PW=sessionStorage.getItem('cei_admin')||'',REQ=[],LOT={},prev=-1;
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(p,o={}){const r=await fetch(API+p,{...o,headers:{'Content-Type':'application/json','Authorization':'Bearer '+PW}});if(r.status===401)throw new Error('401');if(!r.ok)throw new Error(r.status);return r.json()}
+const fd=t=>new Date(t).toLocaleString('es-GT',{dateStyle:'short',timeStyle:'short'});
+async function login(){if(!API){$('lmsg').textContent='Falta configurar apiUrl en config.js (ver README).';return}PW=$('pw').value||PW;try{await api('/api/admin/requests');sessionStorage.setItem('cei_admin',PW);$('login').hidden=true;$('app').hidden=false;refresh();setInterval(refresh,8000);lots()}catch(e){$('lmsg').textContent='Contraseña incorrecta o servidor sin respuesta.'}}
+$('go').onclick=login;$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('out').onclick=()=>{sessionStorage.removeItem('cei_admin');location.reload()};
+if(PW)login();
+['t1','t2','t3'].forEach((t,i)=>$(t).onclick=()=>{['t1','t2','t3'].forEach((x,j)=>{$(x).classList.toggle('on',i===j);$('p'+(j+1)).hidden=i!==j})});
+async function refresh(){try{REQ=(await api('/api/admin/requests')).requests;draw()}catch(e){}}
+function draw(){const pend=REQ.filter(r=>r.status==='pending'),act=REQ.filter(r=>r.status==='approved');
+  $('nb').hidden=!pend.length;$('nb').textContent=pend.length;
+  if(prev>=0&&pend.length>prev&&'Notification' in window&&Notification.permission==='granted')new Notification('Nueva solicitud de acceso',{body:pend[0].name+' · '+pend[0].phone,icon:'icons/icon-192.png'});prev=pend.length;
+  $('p1').innerHTML=pend.length?pend.map(r=>`<div class="card"><b>${esc(r.name)}</b><div class="mute">${esc(r.phone)} · ${fd(r.created)}</div><div class="row" style="margin-top:8px"><select id="h${r.id}"><option value="24">24 horas</option><option value="168" selected>7 días</option><option value="720">30 días</option><option value="0">Sin límite</option></select><button data-a="approve" data-id="${r.id}">Aprobar</button><button class="d" data-a="deny" data-id="${r.id}">Rechazar</button></div></div>`).join(''):'<div class="card mute">No hay solicitudes pendientes.</div>';
+  $('p2').innerHTML=act.length?act.map(r=>`<div class="card row"><div><b>${esc(r.name)}</b><div class="mute">${esc(r.phone)} · vence: ${r.expires?fd(r.expires):'sin límite'}</div></div><span class="sp"></span><button class="d" data-a="revoke" data-id="${r.id}">Revocar</button></div>`).join(''):'<div class="card mute">No hay accesos activos.</div>'}
+document.addEventListener('click',async e=>{const b=e.target.closest('button[data-a]');if(!b)return;const id=b.dataset.id,h=document.getElementById('h'+id);b.disabled=true;
+  try{await api('/api/admin/decide',{method:'POST',body:JSON.stringify({id,action:b.dataset.a,hours:h?+h.value:0})});refresh()}catch(err){b.disabled=false;alert('No se pudo guardar')}});
+$('notif').onclick=async()=>{if(!('Notification' in window))return;const p=await Notification.requestPermission();$('notif').textContent=p==='granted'?'Avisos activos':'Avisos bloqueados'};
+async function lots(){const [t,l]=await Promise.all([fetch('data/tour.json').then(r=>r.json()),api('/api/admin/lotes')]);LOT=l.lotes||{};
+  $('p3').innerHTML='<div class="card"><div class="row"><span class="mute">Cambia estado y precio (Q) y guarda. Se ve de inmediato en el tour.</span><span class="sp"></span><button id="sv">Guardar cambios</button></div></div><div class="card" style="overflow:auto"><table><tr><th>Lote</th><th>Tipo</th><th>m²</th><th>Estado</th><th>Precio Q</th></tr>'+t.lots.map(x=>{const v=LOT['L-'+x.n]||{};return `<tr><td>L-${x.n}</td><td>${x.t}</td><td>${x.a}</td><td><select data-l="${x.n}" data-f="estado">${['disponible','apartado','vendido'].map(s=>`<option${(v.estado||'disponible')===s?' selected':''}>${s}</option>`).join('')}</select></td><td><input data-l="${x.n}" data-f="precio" type="number" min="0" step="1000" value="${v.precio??''}" style="width:130px"></td></tr>`}).join('')+'</table></div>';
+  $('sv').onclick=async()=>{const o={};document.querySelectorAll('[data-l]').forEach(el=>{const k='L-'+el.dataset.l;(o[k]=o[k]||{})[el.dataset.f]=el.dataset.f==='precio'?(el.value===''?null:+el.value):el.value});try{await api('/api/admin/lotes',{method:'PUT',body:JSON.stringify({lotes:o})});$('sv').textContent='Guardado ✓';setTimeout(()=>$('sv').textContent='Guardar cambios',1800)}catch(e){alert('No se pudo guardar')}}}
+</script></body></html>
