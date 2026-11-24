@@ -311,13 +311,13 @@ function init(){
    for(let y=112;y<=580;y+=34){if(!isRd(258,y))continue;let a=258,b=258;while(isRd(a-.5,y)&&a>200)a-=.5;while(isRd(b+.5,y)&&b<320)b+=.5;if(b-a>40||b-a<8)continue;
      const l=lamp.clone(),x=side++%2?b-1.8:a+1.8;l.position.set(X(x),elev(y)-BASE,Z(y));scene.add(l)}}
   // garita de ingreso: caseta con vidrio y piedra, barrera roja y blanca, muro con el nombre
-  {const ey=112,gy=elev(ey)-BASE,G=new THREE.Group(),bx=(w,h,d,m,x,y,z,par)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;(par||G).add(e);return e};
+  {const ey=127,gy=elev(ey)-BASE,G=new THREE.Group(),bx=(w,h,d,m,x,y,z,par)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;(par||G).add(e);return e};
    const dark=new THREE.MeshStandardMaterial({color:0x2b2d30,roughness:.6}),wood=new THREE.MeshStandardMaterial({color:0x9a5a2c,roughness:.7}),stone=new THREE.MeshStandardMaterial({color:0x8c7458,roughness:1}),glass=new THREE.MeshStandardMaterial({color:0x8fb4c8,roughness:.1,metalness:.3,transparent:true,opacity:.6}),slab=new THREE.MeshStandardMaterial({color:0xb9b4aa,roughness:.9});
    bx(5.6,.2,5.2,slab,0,.1,0);bx(3.2,2.7,3.2,glass,0,1.55,0);
    [[-1.6,-1.6],[1.6,-1.6],[-1.6,1.6],[1.6,1.6]].forEach(c=>bx(.14,2.7,.14,dark,c[0],1.55,c[1]));
    bx(5.4,.22,5.4,dark,0,3.05,0);bx(5.0,.08,5.0,wood,0,2.9,0);
    bx(.9,3.2,.9,stone,-2.5,1.7,-2.2);bx(1.1,.5,1.1,stone,-2.5,.35,-2.2);
-   G.position.set(X(246),gy,Z(ey));scene.add(G);
+   G.position.set(X(241),gy,Z(ey));scene.add(G);
    // barrera
    const B=new THREE.Group(),red=new THREE.MeshStandardMaterial({color:0xc4302b,roughness:.5}),wh=new THREE.MeshStandardMaterial({color:0xf3f1ec,roughness:.5});
    bx(.35,1.15,.35,dark,0,.57,0,B);const L=(266-250)*K,nSeg=8;for(let i=0;i<nSeg;i++)bx(L/nSeg,.12,.1,i%2?wh:red,.2+L/nSeg*(i+.5),1.1,0,B);
