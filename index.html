@@ -307,7 +307,29 @@ function init(){
    const add=(geo,m,y)=>{const e=new THREE.Mesh(geo,m);e.position.y=y;e.castShadow=true;lamp.add(e)};
    add(new THREE.CylinderGeometry(.22,.3,.5,8),bm,.25);add(new THREE.CylinderGeometry(.07,.11,4.6,8),bm,2.8);add(new THREE.CylinderGeometry(.16,.1,.25,8),bm,5.2);
    add(new THREE.CylinderGeometry(.3,.2,.6,4,1,true),gm,5.62);add(new THREE.ConeGeometry(.42,.38,4),bm,6.12);add(new THREE.SphereGeometry(.07,8,6),bm,6.38);
-   for(let y=110;y<=580;y+=38){const l=lamp.clone();l.position.set(X(258),elev(y)-BASE,Z(y));scene.add(l)}}
+   const isRd=(x,y)=>inPoly(x,y,D.per)&&!isGreen(x,y)&&!lotAt(x,y);let side=0;
+   for(let y=112;y<=580;y+=34){if(!isRd(258,y))continue;let a=258,b=258;while(isRd(a-.5,y)&&a>200)a-=.5;while(isRd(b+.5,y)&&b<320)b+=.5;if(b-a>40||b-a<8)continue;
+     const l=lamp.clone(),x=side++%2?b-1.8:a+1.8;l.position.set(X(x),elev(y)-BASE,Z(y));scene.add(l)}}
+  // garita de ingreso: caseta con vidrio y piedra, barrera roja y blanca, muro con el nombre
+  {const ey=112,gy=elev(ey)-BASE,G=new THREE.Group(),bx=(w,h,d,m,x,y,z,par)=>{const e=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);e.position.set(x,y,z);e.castShadow=e.receiveShadow=true;(par||G).add(e);return e};
+   const dark=new THREE.MeshStandardMaterial({color:0x2b2d30,roughness:.6}),wood=new THREE.MeshStandardMaterial({color:0x9a5a2c,roughness:.7}),stone=new THREE.MeshStandardMaterial({color:0x8c7458,roughness:1}),glass=new THREE.MeshStandardMaterial({color:0x8fb4c8,roughness:.1,metalness:.3,transparent:true,opacity:.6}),slab=new THREE.MeshStandardMaterial({color:0xb9b4aa,roughness:.9});
+   bx(5.6,.2,5.2,slab,0,.1,0);bx(3.2,2.7,3.2,glass,0,1.55,0);
+   [[-1.6,-1.6],[1.6,-1.6],[-1.6,1.6],[1.6,1.6]].forEach(c=>bx(.14,2.7,.14,dark,c[0],1.55,c[1]));
+   bx(5.4,.22,5.4,dark,0,3.05,0);bx(5.0,.08,5.0,wood,0,2.9,0);
+   bx(.9,3.2,.9,stone,-2.5,1.7,-2.2);bx(1.1,.5,1.1,stone,-2.5,.35,-2.2);
+   G.position.set(X(246),gy,Z(ey));scene.add(G);
+   // barrera
+   const B=new THREE.Group(),red=new THREE.MeshStandardMaterial({color:0xc4302b,roughness:.5}),wh=new THREE.MeshStandardMaterial({color:0xf3f1ec,roughness:.5});
+   bx(.35,1.15,.35,dark,0,.57,0,B);const L=(266-250)*K,nSeg=8;for(let i=0;i<nSeg;i++)bx(L/nSeg,.12,.1,i%2?wh:red,.2+L/nSeg*(i+.5),1.1,0,B);
+   B.position.set(X(250),gy,Z(ey));scene.add(B);
+   // muro con el nombre
+   const c2=document.createElement('canvas');c2.width=1024;c2.height=400;const q=c2.getContext('2d');q.fillStyle='#38352f';q.fillRect(0,0,1024,400);
+   q.fillStyle='#d6b25a';q.strokeStyle='#d6b25a';q.lineWidth=7;q.beginPath();q.moveTo(430,120);q.lineTo(490,60);q.lineTo(520,95);q.lineTo(560,45);q.lineTo(620,120);q.stroke();
+   q.textAlign='center';q.font='700 96px Georgia,serif';q.fillText('ALTOS',512,225);q.font='500 52px Georgia,serif';q.fillText('DE BUENAVISTA',512,290);q.font='400 28px Arial';q.fillText('RESIDENCIAL EXCLUSIVO',512,345);
+   const st=new THREE.CanvasTexture(c2);st.encoding=THREE.sRGBEncoding;st.anisotropy=4;
+   const W=new THREE.Group();bx(6.4,2.5,.35,dark,0,1.5,0,W);const face=new THREE.Mesh(new THREE.PlaneGeometry(6.0,2.34),new THREE.MeshStandardMaterial({map:st,roughness:.6}));face.position.set(0,1.5,-.18);face.rotation.y=Math.PI;W.add(face);
+   bx(.9,3.0,.9,stone,-3.5,1.5,0,W);bx(.9,3.0,.9,stone,3.5,1.5,0,W);
+   W.position.set(X(277),gy,Z(ey-1));scene.add(W)}
   // muro perimetral (postes)
   {const post=new THREE.InstancedMesh(new THREE.BoxGeometry(.18,1.4,.18),new THREE.MeshStandardMaterial({color:0xd9d4c4,roughness:.9}),700);let n=0;
    for(let i=0;i<D.per.length;i++){const a=D.per[i],b=D.per[(i+1)%D.per.length],L=Math.hypot(b[0]-a[0],b[1]-a[1])*K,m=Math.max(1,Math.round(L/4));
