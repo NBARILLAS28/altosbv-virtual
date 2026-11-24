@@ -117,7 +117,7 @@ dt{color:var(--mute)} dd{margin:0;text-align:right;font-variant-numeric:tabular-
   </div>
   <aside class="side" id="side" aria-live="polite"></aside>
 </div>
-<p class="note">Medidas, tipos, perímetro y niveles tomados del plano oficial (Planta de conjunto, fecha 27/10/2026, 17,793.27 m²). El terreno sigue las cotas de nivel de la calle (de +96 m a +40 m) y cada lote queda a su cota. Árboles, luminarias, la casa ilustrativa y las texturas son representaciones, no parte del diseño. Estados y precios se leen de <code>lotes.json</code>.</p>
+<p class="note">Medidas, tipos, perímetro y niveles tomados del plano oficial (Planta de conjunto, fecha 27/10/2026, 17,793.27 m²). El terreno sigue las cotas de nivel de la calle (de +96 m a +40 m) y cada lote queda a su cota. Árboles, luminarias, la casa ilustrativa y las texturas son representaciones, no parte del diseño. La disponibilidad y los precios los actualiza CEI Corporation.</p>
 </div>
 
 <script src="vendor/three.min.js"></script>
@@ -266,8 +266,10 @@ function init(){
     m.position.set(X((x0+x1)/2),l.c-BASE-H/2+.25,Z((y0+y1)/2));m.castShadow=true;m.receiveShadow=true;m.userData.n=l.n;
     m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry),edgeMat));
     scene.add(m);lotMeshes.push(m);l.mesh=m;l.top=top;l.side=side;l.cx=X((x0+x1)/2);l.cz=Z((y0+y1)/2);l.ty=l.c-BASE+.25;l.w3=w;l.d3=d;
-    const c2=document.createElement('canvas');c2.width=128;c2.height=64;const q=c2.getContext('2d');q.font='700 40px Inter,Arial';q.textAlign='center';q.textBaseline='middle';q.lineWidth=7;q.strokeStyle='rgba(0,0,0,.75)';q.strokeText(String(l.n),64,34);q.fillStyle='#fff';q.fillText(String(l.n),64,34);
-    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c2),transparent:true,depthWrite:false}));sp.scale.set(5,2.5,1);sp.position.set(l.cx,l.ty+4,l.cz);scene.add(sp);sprites.push(sp);l.sp=sp;
+    const c2=document.createElement('canvas');c2.width=128;c2.height=64;const q=c2.getContext('2d');
+    l.draw=()=>{q.clearRect(0,0,128,64);const hx='#'+SCOL[l.estado].toString(16).padStart(6,'0');q.fillStyle=hx;q.globalAlpha=.92;q.beginPath();q.roundRect?q.roundRect(14,8,100,48,14):q.rect(14,8,100,48);q.fill();q.globalAlpha=1;q.lineWidth=3;q.strokeStyle='rgba(255,255,255,.9)';q.stroke();q.font='700 34px Inter,Arial';q.textAlign='center';q.textBaseline='middle';q.lineWidth=5;q.strokeStyle='rgba(0,0,0,.45)';q.strokeText(String(l.n),64,34);q.fillStyle='#fff';q.fillText(String(l.n),64,34)};
+    l.draw();l.tex=new THREE.CanvasTexture(c2);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:l.tex,transparent:true,depthWrite:false}));sp.scale.set(5,2.5,1);sp.position.set(l.cx,l.ty+4,l.cz);scene.add(sp);sprites.push(sp);l.sp=sp;
   });
   // salón
   {const sy=elev(432)-BASE,sx=X(292),sz=Z(432),b=new THREE.Mesh(new THREE.BoxGeometry(17,5.5,18),new THREE.MeshStandardMaterial({color:0xe8e2d2,roughness:.8}));b.position.set(sx,sy+2.75,sz);b.castShadow=b.receiveShadow=true;scene.add(b);
@@ -371,8 +373,8 @@ function setHora(h){if(!T)return;const a=(h-6)/12*Math.PI,el=Math.sin(a),s=Math.
   const hh=Math.floor(h),mm=Math.round((h-hh)*60);$('horaT').textContent=hh+':'+String(mm).padStart(2,'0')}
 $('hora').addEventListener('input',e=>setHora(+e.target.value));
 // ---------- estados
-function paintLots(){if(!T)return;LOTS.forEach(l=>{const c=new THREE.Color(SCOL[l.estado]).lerp(new THREE.Color(0xc9b88f),.1);l.top.color.copy(c);const v=vis(l),sel=l.n===st.sel;l.top.transparent=!v;l.top.opacity=v?1:.22;l.side.transparent=!v;l.side.opacity=v?1:.22;
-  l.top.emissive=new THREE.Color(sel?0xd6b25a:0x000000);l.top.emissiveIntensity=sel?.55:0;l.sp.visible=numsOn&&v;l.mesh.scale.y=1});
+function paintLots(){if(!T)return;LOTS.forEach(l=>{const c=new THREE.Color(SCOL[l.estado]).convertSRGBToLinear();l.top.color.copy(c);if(l._e!==l.estado){l._e=l.estado;l.draw();l.tex.needsUpdate=true}const v=vis(l),sel=l.n===st.sel;l.top.transparent=!v;l.top.opacity=v?1:.22;l.side.transparent=!v;l.side.opacity=v?1:.22;
+  l.top.emissive=new THREE.Color(sel?0xd6b25a:SCOL[l.estado]).convertSRGBToLinear();l.top.emissiveIntensity=sel?.55:.28;l.sp.visible=numsOn&&v;l.mesh.scale.y=1});
   const l=byN[st.sel];if(l){T.beam.visible=true;T.beam.position.set(l.cx,l.ty+20,l.cz)}else T.beam.visible=false;placeHouse()}
 let numsOn=true,houseOn=false;
 $('tNum').onclick=e=>{numsOn=!numsOn;e.currentTarget.setAttribute('aria-pressed',numsOn);paintLots()};
@@ -439,21 +441,22 @@ new ResizeObserver(resize).observe(host);
 // ---------- ficha
 function side(){const el=$('side'),l=byN[st.sel];
   if(!l){el.innerHTML=`<div class="eyebrow">Ficha del lote</div><h2>Selecciona un lote</h2><p class="empty">Toca cualquier lote en el visor para ver sus datos. Hay ${LOTS.filter(x=>x.estado==='disponible').length} lotes disponibles de ${LOTS.length}.</p>`;return}
-  const msg=encodeURIComponent(`Hola, me interesa el Lote L-${l.n} (Tipo ${l.t}, ${fmt(l.a)} m²) de Altos de Buena Vista. ¿Me pueden dar información?`),c=css(SCSS[l.estado]);
+  const msg=encodeURIComponent(l.estado!=='disponible'?`Hola, vi que el Lote L-${l.n} de Altos de Buena Vista no está disponible. ¿Qué lotes similares tienen disponibles?`:`Hola, me interesa el Lote L-${l.n} (Tipo ${l.t}, ${fmt(l.a)} m²) de Altos de Buena Vista. ¿Me pueden dar información?`),c=css(SCSS[l.estado]);
   el.innerHTML=`<div class="eyebrow">Ficha del lote</div><h2>L-${l.n}</h2><span class="pill" style="background:${c}">${l.estado[0].toUpperCase()+l.estado.slice(1)}</span>
   <dl><dt>Tipo</dt><dd>${l.t}</dd><dt>Medidas</dt><dd>${fmt(l.w)} × ${fmt(l.d)} m</dd><dt>Área</dt><dd>${fmt(l.a)} m²</dd><dt>Área en varas²</dt><dd>${fmt(l.a*1.4308)} v²</dd><dt>Nivel del lote</dt><dd>+${fmt(l.c)} m</dd>${l.precio?`<dt>Precio por m²</dt><dd>${money(l.precio/l.a)}</dd>`:''}</dl>
-  <div class="price">${l.precio?money(l.precio):'Precio por consultar'}</div>
-  <a class="btn gold" target="_blank" rel="noopener" href="https://wa.me/${WA}?text=${msg}">Consultar por WhatsApp</a>
+  <div class="price">${l.precio?money(l.precio):'Precio por consultar'}</div>${l.estado==='vendido'?'<p class="empty">Este lote ya fue vendido.</p>':l.estado==='apartado'?'<p class="empty">Este lote está apartado por otro cliente.</p>':''}
+  <a class="btn gold" target="_blank" rel="noopener" href="https://wa.me/${WA}?text=${msg}">${l.estado==='disponible'?'Consultar por WhatsApp':'Ver lotes similares por WhatsApp'}</a>
   <button class="btn" id="goWalk">Ver desde el lote</button>
   <div class="nav"><button class="btn" id="prev">← L-${l.n>1?l.n-1:56}</button><button class="btn" id="next">L-${l.n<56?l.n+1:1} →</button></div>`;
   $('goWalk').onclick=()=>{setMode('orbit');setMode('walk')};$('prev').onclick=()=>select(l.n>1?l.n-1:56,true);$('next').onclick=()=>select(l.n<56?l.n+1:1,true)}
-function stats(){const d=LOTS.filter(l=>l.estado==='disponible');$('stats').innerHTML=`<div class="stat"><b>${LOTS.length}</b><span>Lotes</span></div><div class="stat"><b>${d.length}</b><span>Disponibles</span></div><div class="stat"><b>+96 → +40</b><span>Niveles (m)</span></div>`}
+function stats(){const c=e=>LOTS.filter(l=>l.estado===e).length;$('stats').innerHTML=`<div class="stat"><b>${LOTS.length}</b><span>Lotes</span></div><div class="stat"><b style="color:var(--ok)">${c('disponible')}</b><span>Disponibles</span></div><div class="stat"><b style="color:var(--hold)">${c('apartado')}</b><span>Apartados</span></div><div class="stat"><b style="color:var(--sold)">${c('vendido')}</b><span>Vendidos</span></div>`}
 function select(n,go){st.sel=n;try{history.replaceState(null,'','#lote-'+n)}catch(e){}refresh();
   if(T&&go&&T.mode==='orbit'&&!T.tour&&!(fly&&fly.walk)){const l=byN[n],t=new THREE.Vector3(l.cx,l.ty,l.cz),d=T.cam.position.clone().sub(T.ctl.target),hd=Math.hypot(d.x,d.z)||1,az=Math.atan2(d.x,d.z),dist=Math.min(95,Math.max(50,d.length())),el=Math.max(.5,Math.min(.9,Math.atan2(d.y,hd)));
     flyTo(new THREE.Vector3(t.x+Math.sin(az)*Math.cos(el)*dist,t.y+Math.sin(el)*dist,t.z+Math.cos(az)*Math.cos(el)*dist),t,1.5)}}
 function refresh(){stats();paintLots();side()}
 ['fEstado','fTipo','fQ'].forEach(id=>$(id).addEventListener('input',()=>{st.fe=$('fEstado').value;st.ft=$('fTipo').value;st.q=$('fQ').value;refresh()}));
 {const m=/^#lote-(\d+)$/.exec(location.hash);if(m&&byN[+m[1]])st.sel=+m[1]}
+document.querySelectorAll('.legend span').forEach((el,i)=>{const v=['disponible','apartado','vendido'][i];el.style.cursor='pointer';el.title='Filtrar: '+v;el.onclick=()=>{const f=$('fEstado');f.value=f.value===v?'':v;f.dispatchEvent(new Event('input'))}});
 stats();side();hint();
 try{init()}catch(e){$('load').textContent='No se pudo iniciar el visor 3D: '+e.message}
 
